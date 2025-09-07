@@ -1,7 +1,7 @@
 diff --git a/chrome_content_browser_client.cc b/chrome_content_browser_client.cc
 index 03bec8f..cd70e32 100644
---- a/chrome_content_browser_client.cc
-+++ b/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
 @@ -108,6 +108,8 @@
  #include "chrome/browser/net/chrome_network_delegate.h"
  #include "chrome/browser/net/profile_network_context_service.h"
@@ -401,10 +401,10 @@ new file mode 100644
 +  PerSiteOverridesService::RegisterProfilePrefs(registry);
 +}
 
-diff --git a/BUILD.gn b/BUILD.gn
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 index 26b96e5..a8a110c 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
 @@ -829,6 +829,12 @@ static_library("browser") {
      "net/profile_network_context_service.h",
      "net/profile_network_context_service_factory.cc",
