@@ -1,22 +1,4 @@
-diff --git a/BUILD.gn b/BUILD.gn
-index 26b96e5..a8a110c 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -829,6 +829,12 @@ static_library("browser") {
-     "net/profile_network_context_service.h",
-     "net/profile_network_context_service_factory.cc",
-     "net/profile_network_context_service_factory.h",
-+	  "net/per_site_overrides_throttle.cc",
-+	  "net/per_site_overrides_throttle.h",
-+	  "per_site_overrides/per_site_overrides_service.cc",
-+	  "per_site_overrides/per_site_overrides_service.h",
-+	  "per_site_overrides/per_site_overrides_service_factory.cc",
-+	  "per_site_overrides/per_site_overrides_service_factory.h",
-     "net/proxy_config_monitor.cc",
-     "net/proxy_config_monitor.h",
-     "net/proxy_service_factory.cc",
- 
-   diff --git a/chrome_content_browser_client.cc b/chrome_content_browser_client.cc
+diff --git a/chrome_content_browser_client.cc b/chrome_content_browser_client.cc
 index 03bec8f..cd70e32 100644
 --- a/chrome_content_browser_client.cc
 +++ b/chrome_content_browser_client.cc
@@ -418,3 +400,21 @@ new file mode 100644
 +    PrefRegistrySimple* registry) {
 +  PerSiteOverridesService::RegisterProfilePrefs(registry);
 +}
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 26b96e5..a8a110c 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -829,6 +829,12 @@ static_library("browser") {
+     "net/profile_network_context_service.h",
+     "net/profile_network_context_service_factory.cc",
+     "net/profile_network_context_service_factory.h",
++	  "net/per_site_overrides_throttle.cc",
++	  "net/per_site_overrides_throttle.h",
++	  "per_site_overrides/per_site_overrides_service.cc",
++	  "per_site_overrides/per_site_overrides_service.h",
++	  "per_site_overrides/per_site_overrides_service_factory.cc",
++	  "per_site_overrides/per_site_overrides_service_factory.h",
+     "net/proxy_config_monitor.cc",
+     "net/proxy_config_monitor.h",
+     "net/proxy_service_factory.cc",
