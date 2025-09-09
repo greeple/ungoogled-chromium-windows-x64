@@ -78,6 +78,7 @@ new file mode 100644
 +
 +#endif  // CHROME_BROWSER_NET_PER_SITE_OVERRIDES_THROTTLE_H_
 +
+
 diff --git a/chrome/browser/net/per_site_overrides_throttle.cc b/chrome/browser/net/per_site_overrides_throttle.cc
 new file mode 100644
 --- /dev/null
@@ -194,6 +195,7 @@ new file mode 100644
 +  return std::string();
 +}
 +
+
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service.h b/chrome/browser/per_site_overrides/per_site_overrides_service.h
 new file mode 100644
 --- /dev/null
@@ -247,6 +249,7 @@ new file mode 100644
 +
 +#endif  // CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_H_
 +
+
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service.cc b/chrome/browser/per_site_overrides/per_site_overrides_service.cc
 new file mode 100644
 --- /dev/null
@@ -324,6 +327,7 @@ new file mode 100644
 +  return false;
 +}
 +
+
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service_factory.h b/chrome/browser/per_site_overrides/per_site_overrides_service_factory.h
 new file mode 100644
 --- /dev/null
@@ -362,6 +366,7 @@ new file mode 100644
 +
 +#endif  // CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_FACTORY_H_
 +
+
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service_factory.cc b/chrome/browser/per_site_overrides/per_site_overrides_service_factory.cc
 new file mode 100644
 --- /dev/null
@@ -406,6 +411,7 @@ new file mode 100644
 +  PerSiteOverridesService::RegisterProfilePrefs(registry);
 +}
 +
+
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 index 26b96e5..a8a110c 100644
 --- a/chrome/browser/BUILD.gn
