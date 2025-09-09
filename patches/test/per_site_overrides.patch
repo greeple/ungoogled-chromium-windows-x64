@@ -27,8 +27,9 @@ diff --git a/chrome/browser/net/per_site_overrides_throttle.h b/chrome/browser/n
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/net/per_site_overrides_throttle.h
-@@ -0,0 +1,88 @@
-+#pragma once
+@@ -0,0 +91 @@
++#ifndef CHROME_BROWSER_NET_PER_SITE_OVERRIDES_THROTTLE_H_
++#define CHROME_BROWSER_NET_PER_SITE_OVERRIDES_THROTTLE_H_
 +
 +#include <string>
 +#include <vector>
@@ -73,6 +74,8 @@ new file mode 100644
 +
 +  raw_ptr<PerSiteOverridesService> service_;  // Not owned; lives per-profile.
 +};
++
++#endif  // CHROME_BROWSER_NET_PER_SITE_OVERRIDES_THROTTLE_H_
 +
 diff --git a/chrome/browser/net/per_site_overrides_throttle.cc b/chrome/browser/net/per_site_overrides_throttle.cc
 new file mode 100644
@@ -194,8 +197,9 @@ diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service.h b/ch
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/per_site_overrides/per_site_overrides_service.h
-@@ -0,0 +104 @@
-+#pragma once
+@@ -0,0 +107 @@
++#ifndef CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_H_
++#define CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_H_
 +
 +#include <string>
 +#include <vector>
@@ -239,6 +243,8 @@ new file mode 100644
 +  raw_ptr<PrefService> prefs_ = nullptr;
 +  PrefChangeRegistrar pref_registrar_;
 +};
++
++#endif  // CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_H_
 +
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service.cc b/chrome/browser/per_site_overrides/per_site_overrides_service.cc
 new file mode 100644
@@ -321,8 +327,9 @@ diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service_factor
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/per_site_overrides/per_site_overrides_service_factory.h
-@@ -0,0 +42 @@
-+#pragma once
+@@ -0,0 +45 @@
++#ifndef CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_FACTORY_H_
++#define CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_FACTORY_H_
 +
 +#include "base/no_destructor.h"
 +#include "components/keyed_service/content/browser_context_keyed_service_factory.h"
@@ -351,6 +358,8 @@ new file mode 100644
 +  void RegisterProfilePrefs(PrefRegistrySimple* registry) override;
 +  bool ServiceIsCreatedWithBrowserContext() const override { return true; }
 +};
++
++#endif  // CHROME_BROWSER_PER_SITE_OVERRIDES_PER_SITE_OVERRIDES_SERVICE_FACTORY_H_
 +
 diff --git a/chrome/browser/per_site_overrides/per_site_overrides_service_factory.cc b/chrome/browser/per_site_overrides/per_site_overrides_service_factory.cc
 new file mode 100644
