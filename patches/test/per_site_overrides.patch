@@ -1,386 +1,226 @@
-diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
-index 2b3d3f1..8c1e0ac 100644
---- a/chrome/common/pref_names.h
-+++ b/chrome/common/pref_names.h
-@@ -30,6 +30,9 @@ namespace prefs {
- // ... уже существующие декларации ...
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -1,5 +1,6 @@
+ // Copyright 2013 The Chromium Authors
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
  
-+// JSON-словарь предустановок по доменам (см. chrome/browser/domain_overrides).
-+extern const char kProfileDomainOverrides[];
-+
- }  // namespace prefs
+ #include "chrome/browser/chrome_content_browser_client.h"
+ #include "base/command_line.h"
+@@ -180,6 +181,28 @@
+ #include "chrome/browser/profiles/profile.h"
  
-#endif  // CHROME_COMMON_PREF_NAMES_H_
-diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
-index 5f4a2e0..2d8b3c9 100644
---- a/chrome/common/pref_names.cc
-+++ b/chrome/common/pref_names.cc
-@@ -45,6 +45,9 @@ namespace prefs {
- // ... уже существующие определения ...
- 
-+// Пример структуры см. в патче и описании.
-+const char kProfileDomainOverrides[] = "profile.domain_overrides";
-+
- }  // namespace prefs
-diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
-index 7d3c1d2..e91f6a0 100644
---- a/chrome/browser/prefs/browser_prefs.cc
-+++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -64,6 +64,7 @@
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_ui_prefs.h"
-+#include "chrome/common/pref_names.h"
- // ... прочие include ...
- 
- void RegisterProfilePrefs(
-@@ -123,6 +124,8 @@ void RegisterProfilePrefs(
-   // ... уже существующие регистрации ...
- 
-+  // Предустановки по доменам (см. DomainOverridesService).
-+  registry->RegisterDictionaryPref(prefs::kProfileDomainOverrides);
- }
-diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
-index 6b4a210..f4c9d77 100644
---- a/chrome/browser/BUILD.gn
-+++ b/chrome/browser/BUILD.gn
-@@ -1221,6 +1221,16 @@ static_library("browser") {
-     # ... уже существующие исходники ...
- 
-+    # Domain overrides
-+    "domain_overrides/domain_overrides_service.cc",
-+    "domain_overrides/domain_overrides_service.h",
-+    "domain_overrides/ua_header_override_throttle.cc",
-+    "domain_overrides/ua_header_override_throttle.h",
-   ]
- 
-   deps = [
-+    "//components/content_settings/core/browser",
-+    "//components/content_settings/core/common",
-+    "//components/prefs",
-+    "//services/network/public/cpp",
-+    "//net",
-+    "//url",
-+    "//third_party/blink/public/common",
-     # ... уже существующие зависимости ...
-   ]
- }
-diff --git a/chrome/browser/domain_overrides/domain_overrides_service.h b/chrome/browser/domain_overrides/domain_overrides_service.h
-new file mode 100644
-index 0000000..4b72c4a
---- /dev/null
-+++ b/chrome/browser/domain_overrides/domain_overrides_service.h
-@@ -0,0 +1,132 @@
-+#ifndef CHROME_BROWSER_DOMAIN_OVERRIDES_DOMAIN_OVERRIDES_SERVICE_H_
-+#define CHROME_BROWSER_DOMAIN_OVERRIDES_DOMAIN_OVERRIDES_SERVICE_H_
-+
-+#include <optional>
-+#include <string>
-+#include <vector>
-+
++// Domain overrides: includes and helpers
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/json/json_reader.h"
 +#include "base/memory/raw_ptr.h"
-+#include "base/supports_user_data.h"
-+#include "base/values.h"
-+#include "components/content_settings/core/common/content_settings.h"
-+#include "components/content_settings/core/common/content_settings_pattern.h"
-+#include "components/prefs/pref_change_registrar.h"
-+#include "components/prefs/pref_service.h"
-+#include "url/gurl.h"
-+
-+namespace content {
-+class BrowserContext;
-+}
-+
-+class Profile;
-+class HostContentSettingsMap;
-+
-+// Читает profile.domain_overrides из Preferences,
-+// применяет per-site ContentSettings и предоставляет per-request UA по URL.
-+class DomainOverridesService : public base::SupportsUserData::Data {
-+ public:
-+  static DomainOverridesService* GetForBrowserContext(content::BrowserContext* context);
-+
-+  DomainOverridesService(const DomainOverridesService&) = delete;
-+  DomainOverridesService& operator=(const DomainOverridesService&) = delete;
-+
-+  // Возвращает UA для данного URL, если задан; иначе std::nullopt.
-+  std::optional<std::string> GetUserAgentFor(const GURL& url) const;
-+
-+ private:
-+  explicit DomainOverridesService(Profile* profile);
-+  ~DomainOverridesService() override;
-+
-+  void OnPrefChanged();
-+  void LoadFromPrefs();
-+  void ApplyContentSettings();
-+
-+  enum class TriState { kUnset = 0, kAllow, kBlock };
-+
-+  struct Entry {
-+    ContentSettingsPattern pattern;
-+    std::string user_agent;         // empty => нет подмены
-+    TriState javascript = TriState::kUnset;
-+    TriState cookies = TriState::kUnset;
-+  };
-+
-+  raw_ptr<Profile> profile_;
-+  raw_ptr<PrefService> prefs_;
-+  PrefChangeRegistrar registrar_;
-+  std::vector<Entry> entries_;
-+};
-+
-+#endif  // CHROME_BROWSER_DOMAIN_OVERRIDES_DOMAIN_OVERRIDES_SERVICE_H_
-diff --git a/chrome/browser/domain_overrides/domain_overrides_service.cc b/chrome/browser/domain_overrides/domain_overrides_service.cc
-new file mode 100644
-index 0000000..b3f0c6b
---- /dev/null
-+++ b/chrome/browser/domain_overrides/domain_overrides_service.cc
-@@ -0,0 +1,208 @@
-+#include "chrome/browser/domain_overrides/domain_overrides_service.h"
-+
-+#include <algorithm>
-+
-+#include "base/check.h"
 +#include "base/strings/string_util.h"
-+#include "chrome/browser/profiles/profile.h"
-+#include "chrome/common/pref_names.h"
++#include "base/values.h"
 +#include "components/content_settings/core/browser/host_content_settings_map.h"
 +#include "components/content_settings/core/browser/host_content_settings_map_factory.h"
-+#include "components/prefs/pref_registry_simple.h"
-+#include "content/public/browser/browser_context.h"
++#include "components/content_settings/core/common/content_settings.h"
++#include "components/content_settings/core/common/content_settings_pattern.h"
++#include "net/http/http_request_headers.h"
++#include "services/network/public/cpp/resource_request.h"
++#include "third_party/blink/public/common/loader/url_loader_throttle.h"
 +#include "url/gurl.h"
 +
 +namespace {
 +
-+// Преобразуем произвольную строку домена в ContentSettingsPattern.
-+// Рекомендуется вход вида "[*.]example.com". Если без "[*.]" и схемы,
-+// добавим "[*.]" автоматически.
-+ContentSettingsPattern MakePattern(const std::string& key) {
-+  auto pattern = ContentSettingsPattern::FromString(key);
-+  if (pattern.IsValid())
-+    return pattern;
++constexpr char kDomainOverridesPrefPath[] = "profile.domain_overrides";
 +
-+  if (key.find("://") == std::string::npos && key.find("/") == std::string::npos) {
-+    std::string fixed = key;
-+    if (!base::StartsWith(key, "[*.]", base::CompareCase::SENSITIVE))
-+      fixed = std::string("[*.]") + key;
-+    pattern = ContentSettingsPattern::FromString(fixed);
-+    if (pattern.IsValid())
-+      return pattern;
-+  }
-+  // Вернем wildcard-невалидный паттерн (не будет матчиться ни на что).
-+  return ContentSettingsPattern();
++}  // namespace
++
+ // ... existing includes remain ...
+ 
+@@ -400,6 +423,225 @@
+ // ... existing code above ...
+ 
++namespace {
++
++// Минимальная реализация «опера‑подобных» доменных переопределений,
++// читаемых из JSON-файла Preferences.
++//
++// Формат (внутри корня "profile"):
++// "domain_overrides": {
++//   "[*.]site.ru": {
++//     "user_agent": "UA string",
++//     "javascript": "allow" | "block",
++//     "cookies": "allow" | "block"
++//   },
++//   "site.com": { ... }
++// }
++//
++// Рекомендуется ключи вида "[*.]example.com" для охвата поддоменов.
++
++enum class TriState { kUnset = 0, kAllow, kBlock };
++
++TriState ParseTri(const std::string* v) {
++  if (!v) return TriState::kUnset;
++  if (base::EqualsCaseInsensitiveASCII(*v, "allow")) return TriState::kAllow;
++  if (base::EqualsCaseInsensitiveASCII(*v, "block")) return TriState::kBlock;
++  return TriState::kUnset;
 +}
 +
-+DomainOverridesService::TriState ParseTri(const std::string* v) {
-+  if (!v) return DomainOverridesService::TriState::kUnset;
-+  if (base::EqualsCaseInsensitiveASCII(*v, "allow"))
-+    return DomainOverridesService::TriState::kAllow;
-+  if (base::EqualsCaseInsensitiveASCII(*v, "block"))
-+    return DomainOverridesService::TriState::kBlock;
-+  return DomainOverridesService::TriState::kUnset;
-+}
-+
-+ContentSetting ToContentSetting(DomainOverridesService::TriState t) {
++ContentSetting ToContentSetting(TriState t) {
 +  switch (t) {
-+    case DomainOverridesService::TriState::kAllow: return CONTENT_SETTING_ALLOW;
-+    case DomainOverridesService::TriState::kBlock: return CONTENT_SETTING_BLOCK;
-+    case DomainOverridesService::TriState::kUnset: return CONTENT_SETTING_DEFAULT;
++    case TriState::kAllow: return CONTENT_SETTING_ALLOW;
++    case TriState::kBlock: return CONTENT_SETTING_BLOCK;
++    case TriState::kUnset: return CONTENT_SETTING_DEFAULT;
 +  }
 +  return CONTENT_SETTING_DEFAULT;
 +}
 +
-+bool IsWildcard(const ContentSettingsPattern& p) {
-+  std::string s = p.ToString();
-+  return s.find('*') != std::string::npos;
++ContentSettingsPattern MakePattern(const std::string& key) {
++  // Сначала пытаемся как есть (поддерживает [*.] и шаблоны ContentSettingsPattern)
++  ContentSettingsPattern p = ContentSettingsPattern::FromString(key);
++  if (p.IsValid()) return p;
++  // Если это просто хост без схемы/пути — добавим [*.]
++  if (key.find("://") == std::string::npos && key.find('/') == std::string::npos) {
++    std::string fixed = key;
++    if (!base::StartsWith(key, "[*.]", base::CompareCase::SENSITIVE))
++      fixed = std::string("[*.]") + key;
++    p = ContentSettingsPattern::FromString(fixed);
++    if (p.IsValid()) return p;
++  }
++  // Вернем невалидный (не сработает ни на что).
++  return ContentSettingsPattern();
 +}
++
++struct DomainOverrideEntry {
++  ContentSettingsPattern pattern;
++  std::string user_agent;  // пусто => нет подмены
++  TriState javascript = TriState::kUnset;
++  TriState cookies = TriState::kUnset;
++};
++
++class DomainOverridesData : public base::SupportsUserData::Data {
++ public:
++  static DomainOverridesData* GetForBrowserContext(content::BrowserContext* context) {
++    if (!context) return nullptr;
++    static const void* const kKey = &kKey;
++    auto* existing = static_cast<DomainOverridesData*>(context->GetUserData(kKey));
++    if (existing) return existing;
++    Profile* profile = Profile::FromBrowserContext(context);
++    auto owned = std::make_unique<DomainOverridesData>(profile);
++    auto* raw = owned.get();
++    context->SetUserData(kKey, std::move(owned));
++    return raw;
++  }
++
++  explicit DomainOverridesData(Profile* profile) : profile_(profile) {
++    LoadFromPreferencesFile();
++    ApplyContentSettings();
++  }
++
++  std::optional<std::string> GetUserAgentFor(const GURL& url) const {
++    if (!url.is_valid()) return std::nullopt;
++    for (const auto& e : entries_) {
++      if (!e.user_agent.empty() && e.pattern.Matches(url))
++        return e.user_agent;
++    }
++    return std::nullopt;
++  }
++
++ private:
++  void LoadFromPreferencesFile() {
++    entries_.clear();
++    if (!profile_) return;
++
++    // Путь к Preferences: <профиль>/Preferences
++    base::FilePath prefs_path = profile_->GetPath().Append(FILE_PATH_LITERAL("Preferences"));
++    std::string json;
++    if (!base::ReadFileToString(prefs_path, &json))
++      return;
++
++    auto parsed = base::JSONReader::Read(json);
++    if (!parsed || !parsed->is_dict())
++      return;
++    const base::Value::Dict& root = parsed->GetDict();
++    const base::Value::Dict* profile_dict = root.FindDict("profile");
++    if (!profile_dict)
++      return;
++    const base::Value::Dict* overrides = profile_dict->FindDict("domain_overrides");
++    if (!overrides)
++      return;
++
++    for (auto it = overrides->begin(); it != overrides->end(); ++it) {
++      std::string key = std::string(it->first);
++      const base::Value& v = it->second;
++      if (!v.is_dict())
++        continue;
++      ContentSettingsPattern pattern = MakePattern(key);
++      if (!pattern.IsValid())
++        continue;
++
++      DomainOverrideEntry e;
++      e.pattern = pattern;
++      const base::Value::Dict& d = v.GetDict();
++      if (const std::string* ua = d.FindString("user_agent"))
++        e.user_agent = *ua;
++      e.javascript = ParseTri(d.FindString("javascript"));
++      e.cookies = ParseTri(d.FindString("cookies"));
++      entries_.push_back(std::move(e));
++    }
++  }
++
++  void ApplyContentSettings() {
++    if (!profile_) return;
++    HostContentSettingsMap* map =
++        HostContentSettingsMapFactory::GetForProfile(profile_);
++    const auto wildcard = ContentSettingsPattern::Wildcard();
++
++    for (const auto& e : entries_) {
++      if (e.javascript != TriState::kUnset) {
++        map->SetContentSettingCustomScope(
++            e.pattern, wildcard, ContentSettingsType::JAVASCRIPT,
++            ToContentSetting(e.javascript));
++      }
++      if (e.cookies != TriState::kUnset) {
++        map->SetContentSettingCustomScope(
++            e.pattern, wildcard, ContentSettingsType::COOKIES,
++            ToContentSetting(e.cookies));
++      }
++    }
++  }
++
++  raw_ptr<Profile> profile_ = nullptr;
++  std::vector<DomainOverrideEntry> entries_;
++};
++
++class UAHeaderOverrideThrottle : public blink::URLLoaderThrottle {
++ public:
++  explicit UAHeaderOverrideThrottle(DomainOverridesData* data) : data_(data) {}
++  ~UAHeaderOverrideThrottle() override = default;
++
++  void WillStartRequest(network::ResourceRequest* request, bool* /*defer*/) override {
++    if (!data_ || !request) return;
++    if (auto ua = data_->GetUserAgentFor(request->url)) {
++      request->headers.SetHeader(net::HttpRequestHeaders::kUserAgent, *ua);
++    }
++  }
++
++  void WillRedirectRequest(net::RedirectInfo* redirect_info,
++                           const network::mojom::URLResponseHead& /*response_head*/,
++                           bool* /*defer*/,
++                           std::vector<std::string>* /*to_be_removed_headers*/,
++                           net::HttpRequestHeaders* modified_headers) override {
++    if (!data_ || !redirect_info || !modified_headers) return;
++    if (auto ua = data_->GetUserAgentFor(redirect_info->new_url)) {
++      modified_headers->SetHeader(net::HttpRequestHeaders::kUserAgent, *ua);
++    }
++  }
++
++ private:
++  raw_ptr<DomainOverridesData> data_ = nullptr;
++};
 +
 +}  // namespace
 +
-+// static
-+DomainOverridesService* DomainOverridesService::GetForBrowserContext(
-+    content::BrowserContext* context) {
-+  DCHECK(context);
-+  static const void* const kKey = &kKey;
-+  auto* existing = static_cast<DomainOverridesService*>(context->GetUserData(kKey));
-+  if (existing)
-+    return existing;
-+  Profile* profile = Profile::FromBrowserContext(context);
-+  auto owned = std::make_unique<DomainOverridesService>(profile);
-+  auto* raw = owned.get();
-+  context->SetUserData(kKey, std::move(owned));
-+  return raw;
-+}
-+
-+DomainOverridesService::DomainOverridesService(Profile* profile)
-+    : profile_(profile), prefs_(profile->GetPrefs()) {
-+  registrar_.Init(prefs_);
-+  registrar_.Add(prefs::kProfileDomainOverrides,
-+                 base::BindRepeating(&DomainOverridesService::OnPrefChanged,
-+                                     base::Unretained(this)));
-+  LoadFromPrefs();
-+}
-+
-+DomainOverridesService::~DomainOverridesService() = default;
-+
-+void DomainOverridesService::OnPrefChanged() {
-+  LoadFromPrefs();
-+}
-+
-+void DomainOverridesService::LoadFromPrefs() {
-+  entries_.clear();
-+  const base::Value::Dict& root = prefs_->GetDict(prefs::kProfileDomainOverrides);
-+
-+  for (auto it = root.begin(); it != root.end(); ++it) {
-+    const std::string key = std::string(it->first);
-+    const base::Value& v = it->second;
-+    if (!v.is_dict())
-+      continue;
-+    ContentSettingsPattern pattern = MakePattern(key);
-+    if (!pattern.IsValid())
-+      continue;
-+
-+    Entry e;
-+    e.pattern = pattern;
-+    const base::Value::Dict& d = v.GetDict();
-+    if (const std::string* ua = d.FindString("user_agent"))
-+      e.user_agent = *ua;
-+    e.javascript = ParseTri(d.FindString("javascript"));
-+    e.cookies = ParseTri(d.FindString("cookies"));
-+    entries_.push_back(std::move(e));
-+  }
-+
-+  // Сортировка: сначала более специфичные (без wildcard), потом wildcard;
-+  // внутри группы — по убыванию длины строкового представления.
-+  std::sort(entries_.begin(), entries_.end(),
-+            [](const Entry& a, const Entry& b) {
-+              const bool a_w = IsWildcard(a.pattern);
-+              const bool b_w = IsWildcard(b.pattern);
-+              if (a_w != b_w) return !a_w && b_w;
-+              return a.pattern.ToString().size() > b.pattern.ToString().size();
-+            });
-+
-+  ApplyContentSettings();
-+}
-+
-+void DomainOverridesService::ApplyContentSettings() {
-+  HostContentSettingsMap* map =
-+      HostContentSettingsMapFactory::GetForProfile(profile_);
-+  const auto wildcard = ContentSettingsPattern::Wildcard();
-+
-+  for (const auto& e : entries_) {
-+    if (e.javascript != TriState::kUnset) {
-+      map->SetContentSettingCustomScope(
-+          e.pattern, wildcard, ContentSettingsType::JAVASCRIPT,
-+          ToContentSetting(e.javascript));
-+    }
-+    if (e.cookies != TriState::kUnset) {
-+      map->SetContentSettingCustomScope(
-+          e.pattern, wildcard, ContentSettingsType::COOKIES,
-+          ToContentSetting(e.cookies));
-+    }
-+  }
-+}
-+
-+std::optional<std::string> DomainOverridesService::GetUserAgentFor(
-+    const GURL& url) const {
-+  if (!url.is_valid())
-+    return std::nullopt;
-+  for (const auto& e : entries_) {
-+    if (!e.user_agent.empty() && e.pattern.Matches(url))
-+      return e.user_agent;
-+  }
-+  return std::nullopt;
-+}
-diff --git a/chrome/browser/domain_overrides/ua_header_override_throttle.h b/chrome/browser/domain_overrides/ua_header_override_throttle.h
-new file mode 100644
-index 0000000..4a621e1
---- /dev/null
-+++ b/chrome/browser/domain_overrides/ua_header_override_throttle.h
-@@ -0,0 +1,48 @@
-+#ifndef CHROME_BROWSER_DOMAIN_OVERRIDES_UA_HEADER_OVERRIDE_THROTTLE_H_
-+#define CHROME_BROWSER_DOMAIN_OVERRIDES_UA_HEADER_OVERRIDE_THROTTLE_H_
-+
-+#include <memory>
-+#include <string>
-+
-+#include "base/memory/raw_ptr.h"
-+#include "net/http/http_request_headers.h"
-+#include "services/network/public/cpp/resource_request.h"
-+#include "third_party/blink/public/common/loader/url_loader_throttle.h"
-+
-+class DomainOverridesService;
-+
-+// Перезаписывает заголовок User-Agent согласно настройкам домена.
-+class UAHeaderOverrideThrottle : public blink::URLLoaderThrottle {
-+ public:
-+  explicit UAHeaderOverrideThrottle(DomainOverridesService* service);
-+  ~UAHeaderOverrideThrottle() override;
-+
-+  void WillStartRequest(network::ResourceRequest* request, bool* defer) override;
-+  void WillRedirectRequest(net::RedirectInfo* redirect_info,
-+                           const network::mojom::URLResponseHead& response_head,
-+                           bool* defer,
-+                           std::vector<std::string>* to_be_removed_headers,
-+                           net::HttpRequestHeaders* modified_headers) override;
-+
-+ private:
-+  raw_ptr<DomainOverridesService> service_;
-+};
-+
-+#endif  // CHROME_BROWSER_DOMAIN_OVERRIDES_UA_HEADER_OVERRIDE_THROTTLE_H_
-diff --git a/chrome/browser/domain_overrides/ua_header_override_throttle.cc b/chrome/browser/domain_overrides/ua_header_override_throttle.cc
-new file mode 100644
-index 0000000..4b9c33f
---- /dev/null
-+++ b/chrome/browser/domain_overrides/ua_header_override_throttle.cc
-@@ -0,0 +1,57 @@
-+#include "chrome/browser/domain_overrides/ua_header_override_throttle.h"
-+
-+#include "chrome/browser/domain_overrides/domain_overrides_service.h"
-+#include "net/http/http_request_headers.h"
-+#include "services/network/public/cpp/resource_request.h"
-+#include "url/gurl.h"
-+
-+UAHeaderOverrideThrottle::UAHeaderOverrideThrottle(
-+    DomainOverridesService* service)
-+    : service_(service) {}
-+
-+UAHeaderOverrideThrottle::~UAHeaderOverrideThrottle() = default;
-+
-+void UAHeaderOverrideThrottle::WillStartRequest(network::ResourceRequest* request,
-+                                                bool* /*defer*/) {
-+  if (!request)
-+    return;
-+  auto ua = service_->GetUserAgentFor(request->url);
-+  if (ua) {
-+    request->headers.SetHeader(net::HttpRequestHeaders::kUserAgent, *ua);
-+  }
-+}
-+
-+void UAHeaderOverrideThrottle::WillRedirectRequest(
-+    net::RedirectInfo* redirect_info,
-+    const network::mojom::URLResponseHead& /*response_head*/,
-+    bool* /*defer*/,
-+    std::vector<std::string>* /*to_be_removed_headers*/,
-+    net::HttpRequestHeaders* modified_headers) {
-+  if (!redirect_info || !modified_headers)
-+    return;
-+  auto ua = service_->GetUserAgentFor(redirect_info->new_url);
-+  if (ua) {
-+    modified_headers->SetHeader(net::HttpRequestHeaders::kUserAgent, *ua);
-+  }
-+}
-diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
-index 3b5be6f..c9ef72d 100644
---- a/chrome/browser/chrome_content_browser_client.cc
-+++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -189,6 +189,8 @@
-#include "chrome/browser/profiles/profile.h"
-+#include "chrome/browser/domain_overrides/domain_overrides_service.h"
-+#include "chrome/browser/domain_overrides/ua_header_override_throttle.h"
- // ... остальной include ...
+ // ... existing code ...
  
- // В навигации
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
  ChromeContentBrowserClient::CreateURLLoaderThrottles(
      const network::ResourceRequest& request,
@@ -388,20 +228,35 @@ index 3b5be6f..c9ef72d 100644
      content::RenderFrameHost* render_frame_host) {
    auto throttles = content::ContentBrowserClient::CreateURLLoaderThrottles(
        request, browser_context, render_frame_host);
++
++  // Добавим троттл для подмены UA согласно profile.domain_overrides
 +  if (browser_context) {
-+    auto* svc = DomainOverridesService::GetForBrowserContext(browser_context);
-+    throttles.push_back(std::make_unique<UAHeaderOverrideThrottle>(svc));
++    if (auto* data = DomainOverridesData::GetForBrowserContext(browser_context)) {
++      throttles.push_back(std::make_unique<UAHeaderOverrideThrottle>(data));
++    }
 +  }
-   // ... существующая логика ...
+   // ... existing logic ...
    return throttles;
  }
-@@ -210,6 +212,11 @@ void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
+ 
+ void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
+     content::BrowserContext* browser_context,
+     content::RenderFrameHost* render_frame_host,
+     int render_process_id,
+     URLLoaderFactoryType type,
+     const url::Origin& request_initiator,
+     const base::UnguessableToken& top_frame_token,
+     mojo::PendingReceiver<network::mojom::URLLoaderFactory>* factory_receiver,
      mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>*
          header_client,
      std::vector<std::unique_ptr<blink::URLLoaderThrottle>>* throttles) {
-   // ... существующая логика ...
+   // ... existing logic ...
++  // И для фабрик (подресурсы/навигации) тоже добавим троттл UA
 +  if (browser_context && throttles) {
-+    auto* svc = DomainOverridesService::GetForBrowserContext(browser_context);
-+    throttles->push_back(std::make_unique<UAHeaderOverrideThrottle>(svc));
++    if (auto* data = DomainOverridesData::GetForBrowserContext(browser_context)) {
++      throttles->push_back(std::make_unique<UAHeaderOverrideThrottle>(data));
++    }
 +  }
  }
+ 
+ // ... rest of file ...
