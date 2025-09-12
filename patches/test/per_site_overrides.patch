@@ -10,7 +10,7 @@ index 2b3d3f1..8c1e0ac 100644
 +
  }  // namespace prefs
  
- #endif  // CHROME_COMMON_PREF_NAMES_H_
+#endif  // CHROME_COMMON_PREF_NAMES_H_
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 index 5f4a2e0..2d8b3c9 100644
 --- a/chrome/common/pref_names.cc
@@ -27,8 +27,8 @@ index 7d3c1d2..e91f6a0 100644
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
 @@ -64,6 +64,7 @@
- #include "chrome/browser/profiles/profile.h"
- #include "chrome/browser/ui/browser_ui_prefs.h"
+#include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/browser_ui_prefs.h"
 +#include "chrome/common/pref_names.h"
  // ... прочие include ...
  
@@ -375,7 +375,7 @@ index 3b5be6f..c9ef72d 100644
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
 @@ -189,6 +189,8 @@
- #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/profiles/profile.h"
 +#include "chrome/browser/domain_overrides/domain_overrides_service.h"
 +#include "chrome/browser/domain_overrides/ua_header_override_throttle.h"
  // ... остальной include ...
