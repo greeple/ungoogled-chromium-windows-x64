@@ -6,10 +6,10 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  // Use of this source code is governed by a BSD-style license that can be
  // found in the LICENSE file.
  
- #include "chrome/browser/chrome_content_browser_client.h"
- #include "base/command_line.h"
+#include "chrome/browser/chrome_content_browser_client.h"
+#include "base/command_line.h"
 @@ -180,6 +181,28 @@
- #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/profiles/profile.h"
  
 +// Domain overrides: includes and helpers
 +#include "base/files/file_path.h"
